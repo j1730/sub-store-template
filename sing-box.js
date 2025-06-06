@@ -59,7 +59,7 @@ Object.entries(regions).forEach(([regionKey, regex]) => {
   if (!group) {
     group = {
       tag: groupTag,
-      type: "test",
+      type: "urltest",
       outbounds: [],
     };
     config.outbounds.push(group);
