@@ -33,7 +33,7 @@ if (wireguardProxies.length > 0) {
   if (!wireguardGroup) {
     wireguardGroup = {
       tag: 'wireguard',
-      type: 'test',  // 或根据需求选用其他策略组类型，比如 selector
+      type: 'selector',
       outbounds: [],
     };
     config.outbounds.push(wireguardGroup);
