@@ -87,6 +87,17 @@ globalGroups.forEach((g) => {
   group.outbounds = Array.from(new Set([...group.outbounds, ...regionTags]));
 });
 
+// 为空的outbounds添加drict
+config.outbounds.forEach(outbound => {
+  if (Array.isArray(outbound.outbounds) && outbound.outbounds.length === 0) {
+    if (!compatible) {
+      config.outbounds.push(compatible_outbound)
+      compatible = true
+    }
+    outbound.outbounds.push(compatible_outbound.tag);
+  }
+});
+
 $content = JSON.stringify(config, null, 2);
 
 function getTags(proxies, regex) {
