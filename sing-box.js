@@ -26,12 +26,30 @@ let proxies = await produceArtifact({
 // 把所有节点加入配置文件
 config.outbounds.push(...proxies);
 
+// 筛选 wireguard 类型节点，单独做一个组
+const wireguardProxies = proxies.filter(p => p.type && p.type.toLowerCase() === 'wireguard');
+if (wireguardProxies.length > 0) {
+  let wireguardGroup = config.outbounds.find(o => o.tag === 'wireguard');
+  if (!wireguardGroup) {
+    wireguardGroup = {
+      tag: 'wireguard',
+      type: 'test',  // 或根据需求选用其他策略组类型，比如 selector
+      outbounds: [],
+    };
+    config.outbounds.push(wireguardGroup);
+  }
+  wireguardGroup.outbounds = wireguardProxies.map(p => p.tag);
+}
+
+// 筛选非 wireguard 节点，用于地区分组
+const nonWireguardProxies = proxies.filter(p => !(p.type && p.type.toLowerCase() === 'wireguard'));
+
 // 用于记录策略组的 tag
 const regionTags = [];
 
 // 1. 为每个国家创建 test 策略组
 Object.entries(regions).forEach(([regionKey, regex]) => {
-  const matchedTags = getTags(proxies, regex);
+  const matchedTags = getTags(nonWireguardProxies, regex);
   if (matchedTags.length === 0) return;
 
   const groupTag = regionKey;
