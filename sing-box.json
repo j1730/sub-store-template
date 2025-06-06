@@ -317,7 +317,7 @@
       "tolerance": 50
     },
     {
-      "tag": "WireGuard",
+      "tag": "wireguard",
       "type": "selector",
       "outbounds": []
     }
