@@ -13,7 +13,7 @@ const regions = {
 };
 
 let compatible;
-let config = JSON.parse($files[0]);
+let config = $content ? JSON.parse($content) : JSON.parse($files[0]);
 
 // 获取所有的节点
 let proxies = await produceArtifact({
