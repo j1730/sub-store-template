@@ -322,7 +322,7 @@
       "outbounds": []
     },
     {
-      "tag": "Direct",
+      "tag": "direct",
       "type": "direct"
     }
   ],
