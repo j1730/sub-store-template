@@ -47,7 +47,7 @@ const nonWireguardProxies = proxies.filter(p => !(p.type && p.type.toLowerCase()
 // 用于记录策略组的 tag
 const regionTags = [];
 
-// 1. 为每个国家创建 test 策略组
+// 为每个国家创建 test 策略组
 Object.entries(regions).forEach(([regionKey, regex]) => {
   const matchedTags = getTags(nonWireguardProxies, regex);
   if (matchedTags.length === 0) return;
@@ -97,6 +97,18 @@ config.outbounds.forEach(outbound => {
     outbound.outbounds.push(compatible_outbound.tag);
   }
 });
+
+// 添加 final
+let finalGroup = config.outbounds.find("final");
+if (!group){
+  finalGroup = {
+    tag: "final",
+    type: "selector",
+    outbounds: ["proxy", "direct",],
+    "default": "proxy"
+  };
+  config.outbounds.push(finalGroup);
+}
 
 $content = JSON.stringify(config, null, 2);
 
