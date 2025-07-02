@@ -104,7 +104,7 @@ if (!finalGroup){
   finalGroup = {
     tag: "final",
     type: "selector",
-    outbounds: ["proxy", "Direct",],
+    outbounds: ["proxy", "direct",],
     "default": "proxy"
   };
   config.outbounds.push(finalGroup);
