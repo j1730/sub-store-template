@@ -320,6 +320,10 @@
       "tag": "wireguard",
       "type": "selector",
       "outbounds": []
+    },
+    {
+      "tag": "Direct",
+      "type": "direct"
     }
   ],
   "inbounds": [
