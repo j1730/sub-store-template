@@ -99,7 +99,7 @@ config.outbounds.forEach(outbound => {
 });
 
 // 添加 final
-let finalGroup = config.outbounds.find("final");
+let finalGroup = config.outbounds.find(o => o.tag === "final");
 if (!group){
   finalGroup = {
     tag: "final",
