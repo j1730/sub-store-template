@@ -100,7 +100,7 @@ config.outbounds.forEach(outbound => {
 
 // 添加 final
 let finalGroup = config.outbounds.find(o => o.tag === "final");
-if (!group){
+if (!finalGroup){
   finalGroup = {
     tag: "final",
     type: "selector",
