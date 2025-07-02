@@ -87,7 +87,7 @@ globalGroups.forEach((g) => {
   group.outbounds = Array.from(new Set([...group.outbounds, ...regionTags]));
 });
 
-// 为空的outbounds添加drict
+// 为空的outbounds添加COMPATIBLE
 config.outbounds.forEach(outbound => {
   if (Array.isArray(outbound.outbounds) && outbound.outbounds.length === 0) {
     if (!compatible) {
@@ -104,7 +104,7 @@ if (!finalGroup){
   finalGroup = {
     tag: "final",
     type: "selector",
-    outbounds: ["proxy", "direct",],
+    outbounds: ["proxy", "Direct",],
     "default": "proxy"
   };
   config.outbounds.push(finalGroup);
