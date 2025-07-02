@@ -1,93 +1,63 @@
-const { type, name } = $arguments;
+const {
+  type,
+  name
+} = $arguments
 const compatible_outbound = {
-  tag: "COMPATIBLE",
-  type: "direct",
-};
-const regions = {
-  hk: /港|hk|hongkong|kong kong|🇭🇰/i,
-  tw: /台|tw|taiwan|🇹🇼/i,
-  jp: /日本|jp|japan|🇯🇵/i,
-  sg: /^(?!.*(?:us)).*(新|sg|singapore|🇸🇬)/i,
-  us: /美|us|unitedstates|united states|🇺🇸/i,
-  openai: /^(?!.*\b(港|台|香港|台湾|中国|cn|hk|tw)\b).+$/i,
-};
-
-let compatible;
-let config = JSON.parse($content ?? $files[0]);
-
-// 获取所有的节点
-let proxies = await produceArtifact({
-  name,
-  type: /^1$|col/i.test(type) ? "collection" : "subscription",
-  platform: "sing-box",
-  produceType: "internal",
-});
-
-// 把所有节点加入配置文件
-config.outbounds.push(...proxies);
-
-// 筛选 wireguard 类型节点，单独做一个组
-const wireguardProxies = proxies.filter(p => p.type && p.type.toLowerCase() === 'wireguard');
-if (wireguardProxies.length > 0) {
-  let wireguardGroup = config.outbounds.find(o => o.tag === 'wireguard');
-  if (!wireguardGroup) {
-    wireguardGroup = {
-      tag: 'wireguard',
-      type: 'selector',
-      outbounds: [],
-    };
-    config.outbounds.push(wireguardGroup);
-  }
-  wireguardGroup.outbounds = wireguardProxies.map(p => p.tag);
+  tag: 'COMPATIBLE',
+  type: 'direct',
 }
-
-// 筛选非 wireguard 节点，用于地区分组
-const nonWireguardProxies = proxies.filter(p => !(p.type && p.type.toLowerCase() === 'wireguard'));
-
-// 用于记录策略组的 tag
-const regionTags = [];
-
-// 为每个国家创建 test 策略组
-Object.entries(regions).forEach(([regionKey, regex]) => {
-  const matchedTags = getTags(nonWireguardProxies, regex);
-  if (matchedTags.length === 0) return;
-
-  const groupTag = regionKey;
-  regionTags.push(groupTag);
-
-  let group = config.outbounds.find((o) => o.tag === groupTag);
-  if (!group) {
-    group = {
-      tag: groupTag,
-      type: "urltest",
-      outbounds: [],
-    };
-    config.outbounds.push(group);
-  }
-
-  group.outbounds = Array.from(new Set([...group.outbounds, ...matchedTags]));
+let compatible
+let config = JSON.parse($content ?? $files[0])
+let originProxies = await produceArtifact({
+  name,
+  type: /^1$|col/i.test(type) ? 'collection' : 'subscription',
+  platform: 'sing-box',
+  produceType: 'internal',
+})
+// 提取和去除包含流量信息的节点
+let nodeInfoTag = getTags(originProxies,/GB/i)[0];
+let proxies = removeProxiesByRegex(originProxies,/GB/i)
+// proxy 节点 tag 命令规则 🇸🇬 Singapore 01，执行操作后对应策略组tag命名规则 🇸🇬 Singapore
+let countries = new Set();
+proxies.map(obj => {
+  // 除去节点标号作为对应策略组的tag, eg:🇸🇬 Singapore
+  countries.add(obj.tag.split(' ').slice(0, -1).join(' '));
 });
+policyTagList = ["🍀 all", "🛍️ proxy", "🍬 direct", "🧬 auto", "🇨🇳 Taiwan"];
 
-// 添加到 proxy 和 auto
-const globalGroups = [
-  { tag: "proxy", type: "selector" },
-  { tag: "auto", type: "urltest" },
-];
-globalGroups.forEach((g) => {
-  let group = config.outbounds.find((o) => o.tag === g.tag);
-  if (!group) {
-    group = {
-      tag: g.tag,
-      type: g.type,
-      outbounds: [],
-    };
-    config.outbounds.push(group);
-  }
+function Policy(tag, type) {
+  this.tag = tag;
+  this.type = type;
+  this.outbounds = [];
+  this.interrupt_exist_connections = true;
+}
+//===========================================
+let proxy = new Policy("proxy", "selector");
+let auto = new Policy("auto", "urltest");
+let openai = new Policy("openai", "selector");
 
-  group.outbounds = Array.from(new Set([...group.outbounds, ...regionTags]));
+//===========================================
+proxy.outbounds.push("auto", ...countries);
+auto.outbounds.push(...getTags(proxies));
+// 删除节点
+openai.outbounds.push(...getOtherTags(proxies, /(hong kong)/i));
+
+//===========================================
+config.outbounds.push(proxy, auto, openai);
+countries.forEach(j => {
+  let country = new Policy(j, "urltest")
+  //
+  config.outbounds.push(country);
+  //
+  config.outbounds.map(i => {
+    if (j == i.tag) {
+      let regexPattern = i.tag;
+      let regex = new RegExp(regexPattern, 'i');
+      i.outbounds.push(...getTags(proxies, regex));
+    }
+  })
 });
-
-// 为空的outbounds添加COMPATIBLE
+//===========================================
 config.outbounds.forEach(outbound => {
   if (Array.isArray(outbound.outbounds) && outbound.outbounds.length === 0) {
     if (!compatible) {
@@ -97,23 +67,19 @@ config.outbounds.forEach(outbound => {
     outbound.outbounds.push(compatible_outbound.tag);
   }
 });
+config.outbounds.push(...proxies)
 
-// 添加 final
-let finalGroup = config.outbounds.find(o => o.tag === "final");
-if (!finalGroup){
-  finalGroup = {
-    tag: "final",
-    type: "selector",
-    outbounds: ["proxy", "direct",],
-    "default": "proxy"
-  };
-  config.outbounds.push(finalGroup);
+$content = JSON.stringify(config, null, 2)
+
+function removeProxiesByRegex(proxies, regex) {
+    return proxies.filter(proxy => !regex.test(proxy.tag));
 }
 
-$content = JSON.stringify(config, null, 2);
+
+function getOtherTags(proxies, regex) {
+  return (regex ? proxies.filter(p => !regex.test(p.tag)) : proxies).map(p => p.tag)
+}
 
 function getTags(proxies, regex) {
-  return (regex ? proxies.filter((p) => regex.test(p.tag)) : proxies).map(
-    (p) => p.tag
-  );
+  return (regex ? proxies.filter(p => regex.test(p.tag)) : proxies).map(p => p.tag)
 }
