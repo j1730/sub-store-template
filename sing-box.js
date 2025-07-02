@@ -99,16 +99,16 @@ config.outbounds.forEach(outbound => {
 });
 
 // 添加 final
-// let finalGroup = config.outbounds.find(o => o.tag === "final");
-// if (!finalGroup){
-//   finalGroup = {
-//     tag: "final",
-//     type: "selector",
-//     outbounds: ["proxy", "direct",],
-//     "default": "proxy"
-//   };
-//   config.outbounds.push(finalGroup);
-// }
+let finalGroup = config.outbounds.find(o => o.tag === "final");
+if (!finalGroup){
+  finalGroup = {
+    tag: "final",
+    type: "selector",
+    outbounds: ["proxy", "direct",],
+    "default": "proxy"
+  };
+  config.outbounds.push(finalGroup);
+}
 
 $content = JSON.stringify(config, null, 2);
 
